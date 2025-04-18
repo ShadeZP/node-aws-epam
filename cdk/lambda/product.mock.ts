@@ -1,4 +1,4 @@
-import { Product } from '../models/product.model';
+import { Product } from './product.model';
 
 export const games: Product[] = [
   {

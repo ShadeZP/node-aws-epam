@@ -9,7 +9,7 @@
     "watch": "tsc -w",
     "test": "jest",
     "cdk": "cdk",
-    "deploy": "cdk deploy --app npx ts-node cdk/bin/cdk.ts --all --outputs-file cdk-outputs.json --require-approval never"
+    "deploy": "cdk deploy --all"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.149",
@@ -25,8 +25,12 @@
     "@aws-cdk/aws-apigateway": "^1.204.0",
     "@aws-cdk/aws-lambda": "^1.204.0",
     "@aws-cdk/aws-lambda-nodejs": "^1.204.0",
-    "@aws-sdk/client-dynamodb": "^3.797.0",
+    "@aws-sdk/client-dynamodb": "^3.817.0",
+    "@aws-sdk/client-s3": "^3.817.0",
+    "@aws-sdk/client-sns": "^3.817.0",
+    "@aws-sdk/client-sqs": "^3.817.0",
     "@aws-sdk/lib-dynamodb": "^3.797.0",
+    "@smithy/core": "^3.4.0",
     "@types/aws-lambda": "^8.10.149",
     "@types/uuid": "^10.0.0",
     "aws-cdk-lib": "2.186.0",

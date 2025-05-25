@@ -4,7 +4,7 @@ import { GameStoreStack } from '../lib/game-store-stack';
 import { ImportFileStack } from '../lib/import-file.stack';
 
 const app = new cdk.App();
-new GameStoreStack(app, 'CdkStack', {
+const gameStoreStack = new GameStoreStack(app, 'CdkStack', {
   /* If you don't specify 'env', this stack will be environment-agnostic.
    * Account/Region-dependent features and context lookups will not work,
    * but a single synthesized template can be deployed anywhere. */
@@ -22,4 +22,5 @@ new GameStoreStack(app, 'CdkStack', {
 
 new ImportFileStack(app, 'ImportServiceStack', {
   env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
-})
+  catalogItemsQueue: gameStoreStack.catalogItemsQueue,
+});

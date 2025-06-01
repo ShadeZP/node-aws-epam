@@ -2,7 +2,9 @@
 import * as cdk from 'aws-cdk-lib';
 import { GameStoreStack } from '../lib/game-store-stack';
 import { ImportFileStack } from '../lib/import-file.stack';
+import * as dotenv from 'dotenv';
 
+dotenv.config();
 const app = new cdk.App();
 const gameStoreStack = new GameStoreStack(app, 'CdkStack', {
   /* If you don't specify 'env', this stack will be environment-agnostic.

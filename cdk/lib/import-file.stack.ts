@@ -7,6 +7,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import { S3EventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { ResponseType } from 'aws-cdk-lib/aws-apigateway';
 
 interface ImportServiceStackProps extends cdk.StackProps {
   catalogItemsQueue: sqs.IQueue;
@@ -47,27 +48,36 @@ export class ImportFileStack extends cdk.Stack {
       restApiName: 'Import File',
     });
 
-    const importResource = api.root.addResource('import', {
-      defaultCorsPreflightOptions: {
-        allowOrigins: apigateway.Cors.ALL_ORIGINS,
-        allowMethods: ['GET', 'PUT', 'OPTIONS'],
-        allowHeaders: ['*'],
+    api.addGatewayResponse('AccessDeniedResponse', {
+      type: ResponseType.ACCESS_DENIED,
+      responseHeaders: {
+        'Access-Control-Allow-Origin': "'*'",
+        'Access-Control-Allow-Headers': "'*'",
       },
     });
 
-    importResource.addMethod('GET', new apigateway.LambdaIntegration(importProductsFileLambda), {
-      requestParameters: {
-        'method.request.querystring.name': true,
+    api.addGatewayResponse('UnauthorizedResponse', {
+      type: ResponseType.UNAUTHORIZED,
+      responseHeaders: {
+        'Access-Control-Allow-Origin': "'*'",
+        'Access-Control-Allow-Headers': "'*'",
       },
-      methodResponses: [
-        {
-          statusCode: '200',
-          responseParameters: {
-            'method.response.header.Access-Control-Allow-Origin': true,
-            'method.response.header.Access-Control-Allow-Headers': true,
-          },
-        },
-      ],
+    });
+
+    api.addGatewayResponse('Default4xxResponse', {
+      type: ResponseType.DEFAULT_4XX,
+      responseHeaders: {
+        'Access-Control-Allow-Origin': "'*'",
+        'Access-Control-Allow-Headers': "'*'",
+      },
+    });
+
+    const importResource = api.root.addResource('import', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: apigateway.Cors.ALL_ORIGINS,
+        allowMethods: apigateway.Cors.ALL_METHODS,
+        allowHeaders: ['*', 'Authorization'],
+      },
     });
 
     const importFileParserLambda = new NodejsFunction(this, 'ImportFileParserLambda', {
@@ -87,8 +97,40 @@ export class ImportFileStack extends cdk.Stack {
       new S3EventSource(importBucket, {
         events: [s3.EventType.OBJECT_CREATED],
         filters: [{ prefix: 'uploaded/' }],
-      }),
+      })
     );
+
+    const basicAuthorizerLambda = new NodejsFunction(this, 'BasicAuthorizerLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, '../lambda/authorization-service.ts'),
+      handler: 'authHandler',
+      environment: {
+        StanczykDev: process.env.StanczykDev as string,
+      },
+    });
+
+    const authorizer = new apigateway.TokenAuthorizer(this, 'ImportApiLambdaAuthorizer', {
+      handler: basicAuthorizerLambda,
+      identitySource: 'method.request.header.Authorization',
+    });
+
+    importResource.addMethod('GET', new apigateway.LambdaIntegration(importProductsFileLambda), {
+      authorizer,
+      authorizationType: apigateway.AuthorizationType.CUSTOM,
+      requestParameters: {
+        'method.request.querystring.name': true,
+      },
+      methodResponses: [
+        {
+          statusCode: '200',
+          responseParameters: {
+            'method.response.header.Content-Type': true,
+            'method.response.header.Access-Control-Allow-Origin': true,
+            'method.response.header.Access-Control-Allow-Headers': true,
+          },
+        },
+      ],
+    });
 
     new cdk.CfnOutput(this, 'ImportBucketName', {
       value: importBucket.bucketName,
